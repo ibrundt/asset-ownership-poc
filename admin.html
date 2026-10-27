@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POC Asset Administration</title>
+
+<link rel="stylesheet" href="css/style.css">
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+}
+
+input {
+    padding: 8px;
+    margin: 4px 0;
+    width: 300px;
+}
+
+button {
+    padding: 8px 12px;
+    margin: 4px;
+    cursor: pointer;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+th, td {
+    border: 1px solid #ccc;
+    padding: 8px;
+}
+
+th {
+    background-color: #f0f0f0;
+}
+
+pre {
+    background: #f4f4f4;
+    padding: 15px;
+    overflow: auto;
+    max-height: 400px;
+}
+
+.actions {
+    margin-top: 20px;
+}
+</style>
+
+</head>
+
+<body>
+
+<h1>POC Asset Administration</h1>
+
+<p>Registrer nye Intune-enheter lokalt i nettleseren.</p>
+
+<form id="deviceForm">
+
+    <div>
+        <label>Enhets-ID</label><br>
+        <input type="text" id="deviceId" required>
+    </div>
+
+    <div>
+        <label>Enhetsnavn</label><br>
+        <input type="text" id="deviceName" required>
+    </div>
+
+    <div>
+        <label>Serienummer</label><br>
+        <input type="text" id="serialNumber">
+    </div>
+
+    <div>
+        <label>Produsent</label><br>
+        <input type="text" id="manufacturer">
+    </div>
+
+    <div>
+        <label>Modell</label><br>
+        <input type="text" id="model">
+    </div>
+
+    <button type="submit">
+        Legg til enhet
+    </button>
+
+</form>
+
+<hr>
+
+<h2>Registrerte enheter</h2>
+
+<table>
+
+<thead>
+<tr>
+    <th>ID</th>
+    <th>Navn</th>
+    <th>Serienummer</th>
+    <th>Produsent</th>
+    <th>Modell</th>
+    <th>Handling</th>
+</tr>
+</thead>
+
+<tbody id="deviceTable">
+</tbody>
+
+</table>
+
+<div class="actions">
+
+    <button onclick="exportJson()">
+        Eksporter JSON
+    </button>
+
+    <button onclick="copyJson()">
+        Kopier JSON
+    </button>
+
+    <button onclick="clearAll()">
+        Tøm alle enheter
+    </button>
+
+</div>
+
+<h2>JSON eksport</h2>
+
+<pre id="jsonOutput"></pre>
+
+<script>
+
+let devices =
+    JSON.parse(localStorage.getItem("intuneDevices"))
+    || [];
+
+renderTable();
+
+document.getElementById("deviceForm")
+.addEventListener("submit", function(e) {
+
+    e.preventDefault();
+
+    const device = {
+
+        deviceId:
+            document.getElementById("deviceId").value,
+
+        deviceName:
+            document.getElementById("deviceName").value,
+
+        serialNumber:
+            document.getElementById("serialNumber").value,
+
+        manufacturer:
+            document.getElementById("manufacturer").value,
+
+        model:
+            document.getElementById("model").value,
+
+        lastSeen:
+            new Date().toISOString()
+
+    };
+
+    devices.push(device);
+
+    saveDevices();
+
+    document.getElementById("deviceForm").reset();
+
+    renderTable();
+
+});
+
+function saveDevices() {
+
+    localStorage.setItem(
+        "intuneDevices",
+        JSON.stringify(devices)
+    );
+
+}
+
+function renderTable() {
+
+    const table =
+        document.getElementById("deviceTable");
+
+    table.innerHTML = "";
+
+    devices.forEach((device,index) => {
+
+        let row = `
+        <tr>
+            <td>${device.deviceId}</td>
+            <td>${device.deviceName}</td>
+            <td>${device.serialNumber}</td>
+            <td>${device.manufacturer}</td>
+            <td>${device.model}</td>
+            <td>
+                <button onclick="deleteDevice(${index})">
+                    Slett
+                </button>
+            </td>
+        </tr>
+        `;
+
+        table.innerHTML += row;
+
+    });
+
+}
+
+function deleteDevice(index) {
+
+    if(confirm("Slette enheten?")) {
+
+        devices.splice(index,1);
+
+        saveDevices();
+
+        renderTable();
+
+        exportJson();
+
+    }
+
+}
+
+function exportJson() {
+
+    document.getElementById("jsonOutput")
+        .textContent =
+        JSON.stringify(devices,null,2);
+
+}
+
+function copyJson() {
+
+    const text =
+        document.getElementById("jsonOutput")
+        .textContent;
+
+    navigator.clipboard.writeText(text);
+
+    alert("JSON kopiert til utklippstavlen");
+
+}
+
+function clearAll() {
+
+    if(confirm("Tømme alle enheter?")) {
+
+        devices = [];
+
+        saveDevices();
+
+        renderTable();
+
+        exportJson();
+
+    }
+
+}
+
+exportJson();
+
+</script>
+
+</body>
+</html>
